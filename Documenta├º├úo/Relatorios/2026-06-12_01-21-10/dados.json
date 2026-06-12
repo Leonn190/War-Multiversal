@@ -1,0 +1,87 @@
+{
+    "data": "2026-06-12T01:21:10",
+    "autor": "Leon Soto",
+    "tamanho_bytes": 29698,
+    "tamanho_formatado": "29.00 KB",
+    "arquivos_total": 12,
+    "commits": 1,
+    "dias_desde_criacao_repo": 0,
+    "data_criacao_repo": "2026-06-11T21:08:34",
+    "pastas_codigo": {
+        "Prefabs": {
+            "arquivos": 4,
+            "linhas_py": 191,
+            "bytes": 5866
+        },
+        "Visual": {
+            "arquivos": 3,
+            "linhas_py": 181,
+            "bytes": 5418
+        },
+        "Client": {
+            "arquivos": 1,
+            "linhas_py": 101,
+            "bytes": 3097
+        },
+        "Telas": {
+            "arquivos": 1,
+            "linhas_py": 37,
+            "bytes": 1611
+        }
+    },
+    "linhas_py": 907,
+    "arquivos_py": 11,
+    "classes_py": 9,
+    "funcoes_metodos_py": 69,
+    "metodos_py": 53,
+    "funcoes_soltas_py": 16,
+    "top_10_maiores_py": [
+        [
+            "Ferramentas/GeradorRelatorios.py",
+            330
+        ],
+        [
+            "Codigo/Client/ControladorJogo.py",
+            101
+        ],
+        [
+            "Codigo/Visual/PipelineGrafica.py",
+            90
+        ],
+        [
+            "Codigo/Prefabs/Botao.py",
+            71
+        ],
+        [
+            "Game.py",
+            67
+        ],
+        [
+            "Codigo/Visual/TransicaoTela.py",
+            58
+        ],
+        [
+            "Codigo/Prefabs/Texto.py",
+            51
+        ],
+        [
+            "Codigo/Prefabs/Subtela.py",
+            45
+        ],
+        [
+            "Codigo/Telas/Telas/TelaInicial.py",
+            37
+        ],
+        [
+            "Codigo/Visual/LayoutResponsivo.py",
+            33
+        ]
+    ],
+    "imagens": {
+        "Barras das pastas principais": "imagens/pastas_codigo_barras.png",
+        "Pizza das pastas principais": "imagens/pastas_codigo_pizza.png",
+        "Crescimento de arquivos Python": "imagens/crescimento_arquivos_py.png",
+        "Crescimento de linhas Python": "imagens/crescimento_linhas_py.png",
+        "Crescimento de commits": "imagens/crescimento_commits.png"
+    }
+}
