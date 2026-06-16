@@ -27,22 +27,22 @@ class Botao:
             "texto_desativado": (128, 132, 150),
             "raio": 20,
             "largura_borda": 2,
-            "sombra": (0, 0, 0, 105),
-            "sombra_hover": (21, 35, 104, 120),
-            "offset_sombra": 8,
+            "sombra": (0, 0, 0, 112),
+            "offset_sombra": 9,
             "offset_sombra_hover": 12,
-            "crescimento_hover": 1.055,
-            "crescimento_press": 0.982,
-            "velocidade_hover": 0.18,
-            "velocidade_press": 0.28,
+            "crescimento_hover": 1.045,
+            "crescimento_press": 0.985,
+            "velocidade_hover": 0.16,
+            "velocidade_press": 0.25,
             "tamanho_texto": 34,
             "negrito_texto": True,
             "fonte": "segoeui",
             "offset_texto_x": 0,
             "offset_texto_y": 0,
             "brilho": True,
-            "brilho_alpha": 34,
+            "brilho_alpha": 32,
             "linha_lateral": True,
+            "anel_hover": True,
         }
 
         if style:
@@ -67,6 +67,10 @@ class Botao:
         if valor < alvo:
             return min(alvo, valor + velocidade)
         return max(alvo, valor - velocidade)
+
+    def MisturarCor(self, a, b, t):
+        t = max(0, min(1, t))
+        return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
     def CriarRectAnimado(self):
         escala = 1 + ((self.Style["crescimento_hover"] - 1) * self.HoverAnim)
@@ -106,13 +110,15 @@ class Botao:
         if not self.Ativo:
             return self.Style["fundo_desativado"], self.Style["borda_desativado"], self.Style["texto_desativado"]
 
+        fundo = self.MisturarCor(self.Style["fundo"], self.Style["fundo_hover"], self.HoverAnim)
+        borda = self.MisturarCor(self.Style["borda"], self.Style["borda_hover"], self.HoverAnim)
+        texto = self.MisturarCor(self.Style["texto"], self.Style["texto_hover"], self.HoverAnim)
+
         if self.Pressionado:
-            return self.Style["fundo_press"], self.Style["borda_press"], self.Style["texto_hover"]
+            fundo = self.MisturarCor(fundo, self.Style["fundo_press"], self.PressAnim)
+            borda = self.MisturarCor(borda, self.Style["borda_press"], self.PressAnim)
 
-        if self.MouseEmCima:
-            return self.Style["fundo_hover"], self.Style["borda_hover"], self.Style["texto_hover"]
-
-        return self.Style["fundo"], self.Style["borda"], self.Style["texto"]
+        return fundo, borda, texto
 
     def DesenharBrilho(self, tela):
         if not self.Style.get("brilho", True):
@@ -120,7 +126,7 @@ class Botao:
 
         altura = max(1, self.Rect.h // 2)
         brilho = pygame.Surface((self.Rect.w, altura), pygame.SRCALPHA)
-        alpha = int(self.Style.get("brilho_alpha", 34) * (0.6 + 0.4 * self.HoverAnim))
+        alpha = int(self.Style.get("brilho_alpha", 32) * (0.55 + 0.45 * self.HoverAnim))
         pygame.draw.rect(
             brilho,
             (255, 255, 255, alpha),
@@ -128,6 +134,16 @@ class Botao:
             border_radius=self.Style["raio"],
         )
         tela.blit(brilho, self.Rect.topleft)
+
+    def DesenharAnelHover(self, tela, borda):
+        if not self.Style.get("anel_hover", True) or self.HoverAnim <= 0:
+            return
+
+        alpha = int(60 * self.HoverAnim)
+        anel = pygame.Surface((self.Rect.w + 18, self.Rect.h + 18), pygame.SRCALPHA)
+        rect = pygame.Rect(9, 9, self.Rect.w, self.Rect.h)
+        pygame.draw.rect(anel, (*borda, alpha), rect.inflate(10, 10), 2, border_radius=self.Style["raio"] + 6)
+        tela.blit(anel, (self.Rect.x - 9, self.Rect.y - 9))
 
     def DesenharLinhaLateral(self, tela, borda):
         if not self.Style.get("linha_lateral", True):
@@ -138,19 +154,21 @@ class Botao:
         y2 = self.Rect.bottom - max(14, self.Rect.h // 4)
         pygame.draw.line(tela, borda, (x, y1), (x, y2), max(2, self.Rect.h // 22))
 
-    def Desenhar(self, tela):
+    def DesenharCorpo(self, tela):
         fundo, borda, cor_texto = self.PegarCoresAtuais()
-        sombra_cor = self.Style["sombra_hover"] if self.MouseEmCima else self.Style["sombra"]
-        offset_sombra = self.Style["offset_sombra_hover"] if self.MouseEmCima else self.Style["offset_sombra"]
+        offset_sombra = int(self.Style["offset_sombra"] + (self.Style["offset_sombra_hover"] - self.Style["offset_sombra"]) * self.HoverAnim)
         sombra = self.Rect.move(0, offset_sombra)
 
-        pygame.draw.rect(tela, sombra_cor, sombra, border_radius=self.Style["raio"])
+        pygame.draw.rect(tela, self.Style["sombra"], sombra, border_radius=self.Style["raio"])
+        self.DesenharAnelHover(tela, borda)
         pygame.draw.rect(tela, fundo, self.Rect, border_radius=self.Style["raio"])
         self.DesenharBrilho(tela)
         pygame.draw.rect(tela, borda, self.Rect, self.Style["largura_borda"], border_radius=self.Style["raio"])
         pygame.draw.rect(tela, (255, 255, 255, 18), self.Rect.inflate(-8, -8), 1, border_radius=max(1, self.Style["raio"] - 5))
         self.DesenharLinhaLateral(tela, borda)
+        return cor_texto
 
+    def DesenharTexto(self, tela, cor_texto):
         self.Texto.DefinirCor(cor_texto)
         centro = (
             self.Rect.centerx + self.Style.get("offset_texto_x", 0),
@@ -158,22 +176,29 @@ class Botao:
         )
         self.Texto.Desenhar(tela, centro)
 
+    def Desenhar(self, tela):
+        cor_texto = self.DesenharCorpo(tela)
+        self.DesenharTexto(tela, cor_texto)
+
 
 class BotaoAlavanca(Botao):
     def __init__(self, rect, texto="", valor=False, acao=None, style=None):
         self.Valor = bool(valor)
+        self.AnimValor = 1 if self.Valor else 0
         self.AcaoMudanca = acao
         estilo = {
-            "offset_texto_x": -52,
-            "tamanho_texto": 28,
-            "crescimento_hover": 1.035,
-            "raio": 26,
+            "offset_texto_x": -70,
+            "tamanho_texto": 27,
+            "crescimento_hover": 1.025,
+            "raio": 28,
             "linha_lateral": False,
+            "brilho_alpha": 24,
         }
         if style:
             estilo.update(style)
 
         super().__init__(rect, texto, self.TrocarValor, estilo)
+        self.TextoEstado = Texto("ON" if self.Valor else "OFF", tamanho=17, cor=(245, 248, 255), negrito=True)
 
     def DefinirValor(self, valor, executar_acao=False):
         novo = bool(valor)
@@ -181,37 +206,60 @@ class BotaoAlavanca(Botao):
             return
 
         self.Valor = novo
+        self.TextoEstado.DefinirTexto("ON" if self.Valor else "OFF")
         if executar_acao and self.AcaoMudanca:
             self.AcaoMudanca(self.Valor)
 
     def TrocarValor(self):
-        self.Valor = not self.Valor
-        if self.AcaoMudanca:
-            self.AcaoMudanca(self.Valor)
+        self.DefinirValor(not self.Valor, executar_acao=True)
+
+    def Atualizar(self, eventos, mouse_pos):
+        clicou = super().Atualizar(eventos, mouse_pos)
+        alvo = 1 if self.Valor else 0
+        self.AnimValor = self.Aproximar(self.AnimValor, alvo, 0.12)
+        return clicou
+
+    def DesenharTexto(self, tela, cor_texto):
+        self.Texto.DefinirCor(cor_texto)
+        centro = (
+            self.Rect.x + int(self.Rect.w * 0.38),
+            self.Rect.centery + self.Style.get("offset_texto_y", 0),
+        )
+        self.Texto.Desenhar(tela, centro)
 
     def DesenharAlavanca(self, tela):
         margem = max(10, self.Rect.h // 6)
-        largura = max(74, int(self.Rect.w * 0.22))
-        altura = max(34, self.Rect.h - margem * 2)
+        largura = max(92, int(self.Rect.w * 0.24))
+        altura = max(38, self.Rect.h - margem * 2)
         trilho = pygame.Rect(0, 0, largura, altura)
         trilho.centery = self.Rect.centery
-        trilho.right = self.Rect.right - margem - 4
+        trilho.right = self.Rect.right - margem - 6
 
-        cor_trilho = (46, 178, 125) if self.Valor else (69, 73, 96)
-        cor_borda = (162, 255, 220) if self.Valor else (135, 142, 174)
+        cor_off = (61, 66, 94)
+        cor_on = (49, 196, 137)
+        cor_borda_off = (128, 138, 176)
+        cor_borda_on = (166, 255, 223)
+        cor_trilho = self.MisturarCor(cor_off, cor_on, self.AnimValor)
+        cor_borda = self.MisturarCor(cor_borda_off, cor_borda_on, self.AnimValor)
+
+        pygame.draw.rect(tela, (0, 0, 0, 62), trilho.move(0, 4), border_radius=altura // 2)
         pygame.draw.rect(tela, cor_trilho, trilho, border_radius=altura // 2)
+        pygame.draw.rect(tela, (255, 255, 255, 32), trilho.inflate(-8, -8), 1, border_radius=max(1, altura // 2 - 5))
         pygame.draw.rect(tela, cor_borda, trilho, 2, border_radius=altura // 2)
 
-        raio = max(12, altura // 2 - 5)
-        x_off = trilho.right - altura // 2 if self.Valor else trilho.left + altura // 2
-        pygame.draw.circle(tela, (245, 248, 255), (x_off, trilho.centery), raio)
-        pygame.draw.circle(tela, (0, 0, 0, 45), (x_off, trilho.centery + 2), raio, 1)
+        raio = max(13, altura // 2 - 6)
+        x_off = int((trilho.left + altura // 2) + (trilho.w - altura) * self.AnimValor)
+        pygame.draw.circle(tela, (0, 0, 0, 58), (x_off, trilho.centery + 3), raio)
+        pygame.draw.circle(tela, (247, 249, 255), (x_off, trilho.centery), raio)
+        pygame.draw.circle(tela, cor_borda, (x_off, trilho.centery), raio, 2)
+        pygame.draw.circle(tela, (255, 255, 255, 90), (x_off - raio // 3, trilho.centery - raio // 3), max(3, raio // 3))
 
-        texto_estado = "ON" if self.Valor else "OFF"
-        fonte = Texto(texto_estado, tamanho=max(13, self.Rect.h // 5), cor=(236, 241, 255), negrito=True)
-        centro_estado = (trilho.centerx - (altura // 6 if self.Valor else -altura // 6), trilho.centery)
-        fonte.Desenhar(tela, centro_estado)
+        self.TextoEstado.DefinirTexto("ON" if self.Valor else "OFF")
+        self.TextoEstado.DefinirCor((236, 241, 255))
+        texto_x = trilho.left + int(trilho.w * (0.32 if self.Valor else 0.68))
+        self.TextoEstado.Desenhar(tela, (texto_x, trilho.centery))
 
     def Desenhar(self, tela):
-        super().Desenhar(tela)
+        cor_texto = self.DesenharCorpo(tela)
+        self.DesenharTexto(tela, cor_texto)
         self.DesenharAlavanca(tela)

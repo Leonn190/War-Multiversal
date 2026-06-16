@@ -1,10 +1,13 @@
 import pygame
+from ConfigFixa import SalvarConfig
 from Codigo.Visual.PipelineGrafica import PipelineGrafica
 from Codigo.Visual.TransicaoTela import TransicaoTela
 from Codigo.Visual.LayoutResponsivo import LayoutResponsivo
 from Codigo.Telas.Telas.TelaInicial import TelaInicial
 from Codigo.Telas.Telas.TelaConfiguracoes import TelaConfiguracoes
 from Codigo.Prefabs.Texto import Texto
+from Codigo.Prefabs.Mensagem import CampoMensagens
+from Codigo.Client.Sonoridades import Sonoridades
 
 
 class ControladorJogo:
@@ -24,7 +27,9 @@ class ControladorJogo:
         self.Layout.Atualizar(self.Tela.get_size())
         self.Pipeline = PipelineGrafica(self.Tela, self.TelaDisplay, janela_opengl, config)
         self.Transicao = TransicaoTela()
-        self.TextoFPS = Texto("", tamanho=22, cor=(180, 195, 255), negrito=True, centralizado=False)
+        self.TextoFPS = Texto("", tamanho=22, cor=(190, 205, 255), negrito=True, centralizado=False)
+        self.Mensagens = CampoMensagens()
+        self.Sonoridades = Sonoridades(config)
         self.Telas = {
             "TelaInicial": TelaInicial,
             "TelaConfiguracoes": TelaConfiguracoes,
@@ -43,6 +48,9 @@ class ControladorJogo:
         self.Subtelas.clear()
         self.Transicao.Iniciar(0.35, invertida=True)
 
+        if nome in ("TelaInicial", "TelaConfiguracoes"):
+            self.Sonoridades.TocarTema()
+
     def AbrirSubtela(self, subtela):
         self.Subtelas.append(subtela)
         subtela.Entrar()
@@ -53,6 +61,13 @@ class ControladorJogo:
 
         subtela = self.Subtelas.pop()
         subtela.Sair()
+
+    def MostrarMensagem(self, texto, duracao=2.7):
+        self.Mensagens.Adicionar(texto, duracao)
+
+    def SalvarConfiguracoes(self):
+        SalvarConfig(self.Config)
+        self.Sonoridades.AplicarVolume()
 
     def ProcessarEventos(self):
         self.Eventos = pygame.event.get()
@@ -85,6 +100,7 @@ class ControladorJogo:
         for subtela in self.Subtelas:
             subtela.Atualizar(dt)
 
+        self.Mensagens.Atualizar(dt)
         self.Transicao.Atualizar(dt)
 
     def DesenharFPS(self):
@@ -93,10 +109,10 @@ class ControladorJogo:
 
         fps = int(self.Relogio.get_fps())
         self.TextoFPS.DefinirTexto(f"FPS: {fps}")
-        caixa = pygame.Rect(22, 20, 118, 36)
-        pygame.draw.rect(self.Tela, (5, 8, 22, 185), caixa, border_radius=10)
-        pygame.draw.rect(self.Tela, (94, 128, 255, 130), caixa, 1, border_radius=10)
-        self.TextoFPS.Desenhar(self.Tela, (38, 27))
+        self.TextoFPS.DefinirCor((190, 205, 255))
+        x = self.Layout.Largura - self.TextoFPS.Rect.w - self.Layout.X(24)
+        y = self.Layout.Y(18)
+        self.TextoFPS.Desenhar(self.Tela, (x, y))
 
     def Desenhar(self):
         self.Pipeline.IniciarFrame()
@@ -107,6 +123,7 @@ class ControladorJogo:
         for subtela in self.Subtelas:
             subtela.Desenhar(self.Tela)
 
+        self.Mensagens.Desenhar(self.Tela, self.Layout)
         self.DesenharFPS()
         self.Transicao.Desenhar(self.Tela)
         self.Pipeline.Aplicar()
@@ -123,6 +140,7 @@ class ControladorJogo:
             self.Desenhar()
 
     def Encerrar(self):
+        self.SalvarConfiguracoes()
         self.Rodando = False
 
     def encerrar(self):

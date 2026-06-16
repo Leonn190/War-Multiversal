@@ -1,6 +1,7 @@
 import ast
 import json
 import os
+import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -12,9 +13,50 @@ except Exception:
 
 
 RAIZ = Path(__file__).resolve().parents[1]
-PASTA_RELATORIOS = RAIZ / "Documentação" / "Relatorios"
+NOME_DOCUMENTACAO = "Documenta\u00e7\u00e3o"
+PASTA_DOCUMENTACAO = RAIZ / NOME_DOCUMENTACAO
+NOMES_DOCUMENTACAO_ERRADOS = {
+    "Documentacao",
+    "Documenta#U00e7#U00e3o",
+    "Documenta\u00c3\u00a7\u00c3\u00a3o",
+    "Documenta\u251c\u00ba\u251c\u00fao",
+}
 IGNORAR = {".git", "__pycache__", ".venv", "venv", "env", ".idea", ".vscode"}
 DONO = "Leon Soto"
+
+
+def PastasDocumentacaoErradas():
+    return sorted((RAIZ / nome for nome in NOMES_DOCUMENTACAO_ERRADOS), key=lambda caminho: caminho.name)
+
+
+def GarantirPastaDocumentacao():
+    PASTA_DOCUMENTACAO.mkdir(parents=True, exist_ok=True)
+
+    for pasta_errada in PastasDocumentacaoErradas():
+        if not pasta_errada.exists():
+            continue
+
+        for item in pasta_errada.iterdir():
+            destino = PASTA_DOCUMENTACAO / item.name
+            if destino.exists():
+                if item.is_dir():
+                    shutil.copytree(item, destino, dirs_exist_ok=True)
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
+            else:
+                shutil.move(str(item), str(destino))
+
+        try:
+            pasta_errada.rmdir()
+        except OSError:
+            pass
+
+    return PASTA_DOCUMENTACAO
+
+
+PASTA_RELATORIOS = GarantirPastaDocumentacao() / "Relatorios"
+IGNORAR.update(pasta.name for pasta in PastasDocumentacaoErradas())
 
 
 def CaminhosArquivos():
@@ -47,11 +89,7 @@ def InformacoesGit():
     total_commits = RodarGit(["git", "rev-list", "--count", "HEAD"])
     primeiro_commit = RodarGit(["git", "log", "--reverse", "--format=%ci", "--max-count=1"])
 
-    if total_commits.isdigit():
-        total_commits = int(total_commits)
-    else:
-        total_commits = 0
-
+    total_commits = int(total_commits) if total_commits.isdigit() else 0
     dias = 0
     data_criacao = None
 
@@ -65,6 +103,13 @@ def InformacoesGit():
     return total_commits, dias, data_criacao.isoformat() if data_criacao else None
 
 
+def LerTexto(arquivo):
+    try:
+        return arquivo.read_text(encoding="utf-8")
+    except Exception:
+        return arquivo.read_text(encoding="latin-1", errors="ignore")
+
+
 def AnalisarPython(arquivos_py):
     linhas = 0
     classes = 0
@@ -73,11 +118,7 @@ def AnalisarPython(arquivos_py):
     maiores = []
 
     for arquivo in arquivos_py:
-        try:
-            texto = arquivo.read_text(encoding="utf-8")
-        except Exception:
-            texto = arquivo.read_text(encoding="latin-1", errors="ignore")
-
+        texto = LerTexto(arquivo)
         qtd_linhas = len(texto.splitlines())
         linhas += qtd_linhas
         maiores.append((str(arquivo.relative_to(RAIZ)), qtd_linhas))
@@ -132,20 +173,13 @@ def PastasPrincipaisCodigo(arquivos):
         except ValueError:
             continue
 
-        if len(relativo.parts) == 1:
-            pasta = "Codigo"
-        else:
-            pasta = relativo.parts[0]
-
+        pasta = "Codigo" if len(relativo.parts) == 1 else relativo.parts[0]
         ranking.setdefault(pasta, {"arquivos": 0, "linhas_py": 0, "bytes": 0})
         ranking[pasta]["arquivos"] += 1
         ranking[pasta]["bytes"] += arquivo.stat().st_size
 
         if arquivo.suffix == ".py":
-            try:
-                ranking[pasta]["linhas_py"] += len(arquivo.read_text(encoding="utf-8").splitlines())
-            except Exception:
-                pass
+            ranking[pasta]["linhas_py"] += len(LerTexto(arquivo).splitlines())
 
     return dict(sorted(ranking.items(), key=lambda item: item[1]["linhas_py"], reverse=True))
 
@@ -320,11 +354,12 @@ def GerarRelatorio():
     markdown = CriarMarkdown(dados, imagens)
     (pasta / "relatorio.md").write_text(markdown, encoding="utf-8")
 
-    prefixo_registro = f"Documentação/Relatorios/{nome}/"
+    prefixo_registro = f"{NOME_DOCUMENTACAO}/Relatorios/{nome}/"
     markdown_raiz = CriarMarkdown(dados, imagens, prefixo_registro)
     (RAIZ / "Registro.md").write_text(markdown_raiz, encoding="utf-8")
 
     return pasta
 
 
-GerarRelatorio()
+if __name__ == "__main__":
+    GerarRelatorio()

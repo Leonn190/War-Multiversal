@@ -1,0 +1,10 @@
+{
+    "FPS": 200,
+    "Volume": 0.5,
+    "Claridade": 75,
+    "Mudo": false,
+    "FPS Visivel": true,
+    "Shader": true,
+    "LarguraBase": 1920,
+    "AlturaBase": 1080
+}

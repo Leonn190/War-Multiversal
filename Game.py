@@ -10,13 +10,17 @@ try:
 except ImportError:
     moderngl = None
 
+from ConfigFixa import CarregarConfig, SalvarConfig
 from Codigo.Client.ControladorJogo import ControladorJogo
 
 if hasattr(ctypes, "windll") and hasattr(ctypes.windll, "shell32"):
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("war.multiversal")
 
 pygame.init()
-pygame.mixer.init()
+try:
+    pygame.mixer.init()
+except pygame.error:
+    pass
 
 
 def CriarJanela():
@@ -43,17 +47,7 @@ TELA = pygame.Surface((1920, 1080)).convert_alpha()
 pygame.display.set_caption("War Multiversal")
 
 RELOGIO = pygame.time.Clock()
-
-CONFIG = {
-    "FPS": 200,
-    "Volume": 0.5,
-    "Claridade": 75,
-    "Mudo": False,
-    "FPS Visivel": True,
-    "Shader": True,
-    "LarguraBase": 1920,
-    "AlturaBase": 1080,
-}
+CONFIG = CarregarConfig()
 
 Game = ControladorJogo(TELA, RELOGIO, CONFIG, tela_display=JANELA, janela_opengl=JANELA_OPENGL)
 Game.DefinirTela("TelaInicial")
@@ -61,7 +55,10 @@ Game.DefinirTela("TelaInicial")
 try:
     Game.Rodar()
 finally:
+    SalvarConfig(CONFIG)
     Game.Encerrar()
-    pygame.mixer.music.stop()
-    pygame.mixer.stop()
+    if hasattr(Game, "Sonoridades"):
+        Game.Sonoridades.PararTudo()
+    if pygame.mixer.get_init():
+        pygame.mixer.stop()
     pygame.quit()

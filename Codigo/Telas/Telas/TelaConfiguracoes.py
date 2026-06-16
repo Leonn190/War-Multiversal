@@ -3,7 +3,8 @@ from Codigo.Prefabs.Tela import Tela
 from Codigo.Prefabs.Botao import Botao, BotaoAlavanca
 from Codigo.Prefabs.Slider import Slider
 from Codigo.Prefabs.Texto import Texto
-from Codigo.Prefabs.Universos import CampoUniversos
+from Codigo.Prefabs.CampoUniversos import CampoUniversos
+from Codigo.Prefabs.Painel import Painel
 
 
 class TelaConfiguracoes(Tela):
@@ -13,6 +14,14 @@ class TelaConfiguracoes(Tela):
         self.Titulo = Texto("CONFIGURAÇÕES", tamanho=70, cor=(248, 250, 255), negrito=True)
         self.Subtitulo = Texto("Ajustes do cliente visual", tamanho=28, cor=(169, 183, 230))
         self.CampoUniversos = CampoUniversos(quantidade=10, seed=331)
+        self.PainelConfiguracoes = Painel((520, 300, 880, 600), {
+            "fundo": (13, 18, 42, 220),
+            "borda": (93, 132, 250, 155),
+            "sombra": (0, 0, 0, 105),
+            "offset_sombra": 18,
+            "raio": 40,
+            "padding_borda_interna": 14,
+        })
         self.CriarControles()
 
     def CriarControles(self):
@@ -23,7 +32,7 @@ class TelaConfiguracoes(Tela):
             "borda_hover": (202, 213, 255),
             "tamanho_texto": 26,
             "raio": 22,
-            "crescimento_hover": 1.045,
+            "crescimento_hover": 1.035,
         }
         estilo_toggle = {
             "fundo": (29, 51, 76),
@@ -65,6 +74,9 @@ class TelaConfiguracoes(Tela):
         self.Botoes = [self.BotaoVoltar, self.BotaoFPSVisivel]
         self.Sliders = [self.SliderVolume, self.SliderFPS]
 
+    def Entrar(self):
+        self.Controlador.Sonoridades.TocarTema()
+
     def Voltar(self):
         self.Controlador.DefinirTela("TelaInicial")
 
@@ -72,18 +84,21 @@ class TelaConfiguracoes(Tela):
         valor = max(0, min(1, float(valor)))
         self.Controlador.Config["Volume"] = valor
         self.Controlador.Config["Mudo"] = valor <= 0
-        if pygame.mixer.get_init():
-            pygame.mixer.music.set_volume(valor)
+        self.Controlador.SalvarConfiguracoes()
 
     def AlterarFPSMaximo(self, valor):
         self.Controlador.Config["FPS"] = int(valor)
+        self.Controlador.SalvarConfiguracoes()
 
     def AlterarFPSVisivel(self, valor):
         self.Controlador.Config["FPS Visivel"] = bool(valor)
+        self.Controlador.SalvarConfiguracoes()
 
     def Atualizar(self, dt):
         self.Tempo += dt
-        self.CampoUniversos.Atualizar(dt)
+        largura, altura = self.Controlador.Tela.get_size()
+        self.CampoUniversos.Atualizar(dt, largura, altura)
+        self.PainelConfiguracoes.AtualizarRect(self.Controlador.Layout)
         super().Atualizar(dt)
 
         mouse_pos = self.Controlador.MousePos
@@ -105,17 +120,10 @@ class TelaConfiguracoes(Tela):
         pygame.draw.circle(camada, (44, 100, 142, 95), (int(largura * 0.76), int(altura * 0.2)), int(min(largura, altura) * 0.27))
         tela.blit(camada, (0, 0))
 
-    def DesenharPainel(self, tela):
-        painel = pygame.Rect(520, 300, 880, 600)
-        pygame.draw.rect(tela, (0, 0, 0, 105), painel.move(0, 18), border_radius=40)
-        pygame.draw.rect(tela, (13, 18, 42, 220), painel, border_radius=40)
-        pygame.draw.rect(tela, (93, 132, 250, 155), painel, 2, border_radius=40)
-        pygame.draw.rect(tela, (255, 255, 255, 18), painel.inflate(-14, -14), 1, border_radius=34)
-
     def Desenhar(self, tela):
         layout = self.Controlador.Layout
         self.DesenharFundo(tela)
-        self.DesenharPainel(tela)
+        self.PainelConfiguracoes.Desenhar(tela)
 
         self.Titulo.Desenhar(tela, (layout.X(960), layout.Y(205)))
         self.Subtitulo.Desenhar(tela, (layout.X(960), layout.Y(275)))

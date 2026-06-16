@@ -2,7 +2,8 @@ import pygame
 from Codigo.Prefabs.Tela import Tela
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Prefabs.Texto import Texto
-from Codigo.Prefabs.Universos import CampoUniversos
+from Codigo.Prefabs.CampoUniversos import CampoUniversos
+from Codigo.Prefabs.Painel import Painel
 
 
 class TelaInicial(Tela):
@@ -10,10 +11,15 @@ class TelaInicial(Tela):
         super().__init__(controlador)
         self.Tempo = 0
         self.Titulo = Texto("WAR MULTIVERSAL", tamanho=84, cor=(248, 250, 255), negrito=True)
-        self.Subtitulo = Texto("Domine territórios. Planeje turnos. Quebre universos.", tamanho=30, cor=(171, 184, 230))
-        self.Aviso = Texto("", tamanho=24, cor=(200, 212, 255), negrito=True)
-        self.TempoAviso = 0
         self.CampoUniversos = CampoUniversos(quantidade=15, seed=777)
+        self.PainelCentral = Painel((610, 480, 700, 520), {
+            "fundo": (14, 18, 42, 185),
+            "borda": (94, 120, 240, 125),
+            "sombra": (10, 13, 31, 190),
+            "offset_sombra": 14,
+            "raio": 36,
+            "padding_borda_interna": 12,
+        })
         self.CriarBotoes()
 
     def CriarBotoes(self):
@@ -25,9 +31,9 @@ class TelaInicial(Tela):
             "borda_hover": (196, 211, 255),
             "tamanho_texto": 32,
             "raio": 24,
-            "crescimento_hover": 1.06,
+            "crescimento_hover": 1.045,
             "offset_sombra": 9,
-            "offset_sombra_hover": 14,
+            "offset_sombra_hover": 12,
         }
         estilo_secundario = {
             **estilo_principal,
@@ -58,24 +64,23 @@ class TelaInicial(Tela):
         self.BotaoSair = Botao((710, 865, 500, 86), "Sair", self.Controlador.Encerrar, estilo_sair)
         self.Botoes = [self.BotaoRanqueado, self.BotaoCustomizado, self.BotaoConfiguracoes, self.BotaoSair]
 
+    def Entrar(self):
+        self.Controlador.Sonoridades.TocarTema()
+
     def AbrirRanqueado(self):
-        self.DefinirAviso("Ranqueado ainda não foi ligado ao servidor de partidas.")
+        self.Controlador.MostrarMensagem("Ranqueado ainda não foi ligado ao servidor de partidas.")
 
     def AbrirCustomizado(self):
-        self.DefinirAviso("Customizado ainda não foi ligado à criação de sala.")
+        self.Controlador.MostrarMensagem("Customizado ainda não foi ligado à criação de sala.")
 
     def AbrirConfiguracoes(self):
         self.Controlador.DefinirTela("TelaConfiguracoes")
 
-    def DefinirAviso(self, texto):
-        self.Aviso.DefinirTexto(texto)
-        self.TempoAviso = 3.0
-
     def Atualizar(self, dt):
         self.Tempo += dt
-        self.CampoUniversos.Atualizar(dt)
-        if self.TempoAviso > 0:
-            self.TempoAviso = max(0, self.TempoAviso - dt)
+        largura, altura = self.Controlador.Tela.get_size()
+        self.CampoUniversos.Atualizar(dt, largura, altura)
+        self.PainelCentral.AtualizarRect(self.Controlador.Layout)
         super().Atualizar(dt)
 
     def DesenharFundo(self, tela):
@@ -98,29 +103,12 @@ class TelaInicial(Tela):
         pygame.draw.rect(camada, (0, 0, 0, 70), (0, 0, largura, altura))
         tela.blit(camada, (0, 0))
 
-    def DesenharPainelCentral(self, tela):
-        painel = pygame.Rect(610, 480, 700, 520)
-        pygame.draw.rect(tela, (10, 13, 31, 190), painel.move(0, 14), border_radius=36)
-        pygame.draw.rect(tela, (14, 18, 42, 185), painel, border_radius=36)
-        pygame.draw.rect(tela, (94, 120, 240, 125), painel, 2, border_radius=36)
-        pygame.draw.rect(tela, (255, 255, 255, 18), painel.inflate(-12, -12), 1, border_radius=30)
-
     def Desenhar(self, tela):
         layout = self.Controlador.Layout
         self.DesenharFundo(tela)
-        self.DesenharPainelCentral(tela)
+        self.PainelCentral.Desenhar(tela)
 
-        self.Titulo.Desenhar(tela, (layout.X(960), layout.Y(275)))
-        self.Subtitulo.Desenhar(tela, (layout.X(960), layout.Y(372)))
+        self.Titulo.Desenhar(tela, (layout.X(960), layout.Y(305)))
 
         for botao in self.Botoes:
             botao.Desenhar(tela)
-
-        if self.TempoAviso > 0:
-            alpha = int(255 * min(1, self.TempoAviso / 0.35)) if self.TempoAviso < 0.35 else 255
-            caixa = pygame.Surface((740, 54), pygame.SRCALPHA)
-            pygame.draw.rect(caixa, (18, 25, 58, min(210, alpha)), (0, 0, 740, 54), border_radius=18)
-            pygame.draw.rect(caixa, (130, 158, 255, min(180, alpha)), (0, 0, 740, 54), 2, border_radius=18)
-            tela.blit(caixa, (layout.X(590), layout.Y(982)))
-            self.Aviso.DefinirCor((200, 212, 255))
-            self.Aviso.Desenhar(tela, (layout.X(960), layout.Y(1009)))
