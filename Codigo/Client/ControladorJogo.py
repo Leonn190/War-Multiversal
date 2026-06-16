@@ -3,6 +3,8 @@ from Codigo.Visual.PipelineGrafica import PipelineGrafica
 from Codigo.Visual.TransicaoTela import TransicaoTela
 from Codigo.Visual.LayoutResponsivo import LayoutResponsivo
 from Codigo.Telas.Telas.TelaInicial import TelaInicial
+from Codigo.Telas.Telas.TelaConfiguracoes import TelaConfiguracoes
+from Codigo.Prefabs.Texto import Texto
 
 
 class ControladorJogo:
@@ -22,11 +24,16 @@ class ControladorJogo:
         self.Layout.Atualizar(self.Tela.get_size())
         self.Pipeline = PipelineGrafica(self.Tela, self.TelaDisplay, janela_opengl, config)
         self.Transicao = TransicaoTela()
+        self.TextoFPS = Texto("", tamanho=22, cor=(180, 195, 255), negrito=True, centralizado=False)
         self.Telas = {
             "TelaInicial": TelaInicial,
+            "TelaConfiguracoes": TelaConfiguracoes,
         }
 
     def DefinirTela(self, nome):
+        if nome not in self.Telas:
+            return
+
         if self.TelaAtual:
             self.TelaAtual.Sair()
 
@@ -59,6 +66,8 @@ class ControladorJogo:
                 if evento.key == pygame.K_ESCAPE:
                     if self.Subtelas:
                         self.FecharSubtela()
+                    elif self.NomeTelaAtual != "TelaInicial":
+                        self.DefinirTela("TelaInicial")
                     else:
                         self.Rodando = False
 
@@ -78,6 +87,17 @@ class ControladorJogo:
 
         self.Transicao.Atualizar(dt)
 
+    def DesenharFPS(self):
+        if not self.Config.get("FPS Visivel", True):
+            return
+
+        fps = int(self.Relogio.get_fps())
+        self.TextoFPS.DefinirTexto(f"FPS: {fps}")
+        caixa = pygame.Rect(22, 20, 118, 36)
+        pygame.draw.rect(self.Tela, (5, 8, 22, 185), caixa, border_radius=10)
+        pygame.draw.rect(self.Tela, (94, 128, 255, 130), caixa, 1, border_radius=10)
+        self.TextoFPS.Desenhar(self.Tela, (38, 27))
+
     def Desenhar(self):
         self.Pipeline.IniciarFrame()
 
@@ -87,15 +107,29 @@ class ControladorJogo:
         for subtela in self.Subtelas:
             subtela.Desenhar(self.Tela)
 
+        self.DesenharFPS()
         self.Transicao.Desenhar(self.Tela)
         self.Pipeline.Aplicar()
 
     def Rodar(self):
         while self.Rodando:
-            dt = self.Relogio.tick(self.Config.get("FPS", 60)) / 1000
+            fps = int(self.Config.get("FPS", 60))
+            if fps <= 0:
+                fps = 60
+
+            dt = self.Relogio.tick(fps) / 1000
             self.ProcessarEventos()
             self.Atualizar(dt)
             self.Desenhar()
 
     def Encerrar(self):
-        pass
+        self.Rodando = False
+
+    def encerrar(self):
+        self.Encerrar()
+
+    def abrir_subtela(self, subtela):
+        self.AbrirSubtela(subtela)
+
+    def fechar_subtela(self):
+        self.FecharSubtela()
