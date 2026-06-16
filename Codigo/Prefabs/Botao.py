@@ -193,6 +193,7 @@ class BotaoAlavanca(Botao):
             "raio": 28,
             "linha_lateral": False,
             "brilho_alpha": 24,
+            "mostrar_estado": True,
         }
         if style:
             estilo.update(style)
@@ -206,7 +207,8 @@ class BotaoAlavanca(Botao):
             return
 
         self.Valor = novo
-        self.TextoEstado.DefinirTexto("ON" if self.Valor else "OFF")
+        if self.Style.get("mostrar_estado", True):
+            self.TextoEstado.DefinirTexto("ON" if self.Valor else "OFF")
         if executar_acao and self.AcaoMudanca:
             self.AcaoMudanca(self.Valor)
 
@@ -254,12 +256,81 @@ class BotaoAlavanca(Botao):
         pygame.draw.circle(tela, cor_borda, (x_off, trilho.centery), raio, 2)
         pygame.draw.circle(tela, (255, 255, 255, 90), (x_off - raio // 3, trilho.centery - raio // 3), max(3, raio // 3))
 
-        self.TextoEstado.DefinirTexto("ON" if self.Valor else "OFF")
-        self.TextoEstado.DefinirCor((236, 241, 255))
-        texto_x = trilho.left + int(trilho.w * (0.32 if self.Valor else 0.68))
-        self.TextoEstado.Desenhar(tela, (texto_x, trilho.centery))
+        if self.Style.get("mostrar_estado", True):
+            self.TextoEstado.DefinirTexto("ON" if self.Valor else "OFF")
+            self.TextoEstado.DefinirCor((236, 241, 255))
+            texto_x = trilho.left + int(trilho.w * (0.32 if self.Valor else 0.68))
+            self.TextoEstado.Desenhar(tela, (texto_x, trilho.centery))
 
     def Desenhar(self, tela):
         cor_texto = self.DesenharCorpo(tela)
         self.DesenharTexto(tela, cor_texto)
         self.DesenharAlavanca(tela)
+
+
+class BotaoSelecaoUniverso(BotaoAlavanca):
+    def __init__(self, rect, texto="", valor=False, acao=None, cor_universo=(112, 140, 255), style=None):
+        self.CorUniverso = cor_universo
+        self.CorUniversoClara = tuple(min(255, c + 58) for c in cor_universo)
+        estilo = {
+            "fundo": (25, 31, 68),
+            "fundo_hover": (40, 53, 106),
+            "fundo_press": (18, 23, 52),
+            "borda": (72, 88, 160),
+            "borda_hover": self.CorUniversoClara,
+            "texto": (224, 231, 255),
+            "texto_hover": (255, 255, 255),
+            "selecionado_fundo": tuple(max(0, int(c * 0.72)) for c in cor_universo),
+            "selecionado_hover": tuple(min(255, int(c * 0.9) + 38) for c in cor_universo),
+            "selecionado_borda": self.CorUniversoClara,
+            "selecionado_texto": (255, 255, 255),
+            "offset_texto_x": 0,
+            "tamanho_texto": 23,
+            "crescimento_hover": 1.035,
+            "raio": 24,
+            "linha_lateral": False,
+            "brilho_alpha": 25,
+            "mostrar_estado": False,
+            "anel_hover": True,
+        }
+        if style:
+            estilo.update(style)
+
+        super().__init__(rect, texto, valor, acao, estilo)
+
+    def PegarCoresAtuais(self):
+        fundo, borda, texto = super().PegarCoresAtuais()
+        if not self.Ativo:
+            return fundo, borda, texto
+
+        if self.AnimValor > 0:
+            fundo = self.MisturarCor(fundo, self.Style["selecionado_fundo"], self.AnimValor)
+            borda = self.MisturarCor(borda, self.Style["selecionado_borda"], self.AnimValor)
+            texto = self.MisturarCor(texto, self.Style["selecionado_texto"], self.AnimValor)
+            fundo = self.MisturarCor(fundo, self.Style["selecionado_hover"], self.HoverAnim * 0.55)
+        return fundo, borda, texto
+
+    def DesenharTexto(self, tela, cor_texto):
+        self.Texto.DefinirCor(cor_texto)
+        self.Texto.Desenhar(tela, self.Rect.center)
+
+    def DesenharAlavanca(self, tela):
+        tamanho = max(20, self.Rect.h // 4)
+        x = self.Rect.right - tamanho - max(16, self.Rect.w // 18)
+        y = self.Rect.y + max(14, self.Rect.h // 6)
+        centro = (x + tamanho // 2, y + tamanho // 2)
+        raio = tamanho // 2
+
+        cor_base = self.MisturarCor((77, 87, 126), self.CorUniversoClara, self.AnimValor)
+        pygame.draw.circle(tela, (0, 0, 0, 70), (centro[0], centro[1] + 3), raio)
+        pygame.draw.circle(tela, cor_base, centro, raio)
+        pygame.draw.circle(tela, (255, 255, 255, 70), (centro[0] - raio // 3, centro[1] - raio // 3), max(3, raio // 3))
+
+        if self.AnimValor > 0.45:
+            alpha = int(255 * min(1, (self.AnimValor - 0.45) / 0.55))
+            check = pygame.Surface((tamanho, tamanho), pygame.SRCALPHA)
+            ponto1 = (int(tamanho * 0.26), int(tamanho * 0.54))
+            ponto2 = (int(tamanho * 0.43), int(tamanho * 0.70))
+            ponto3 = (int(tamanho * 0.76), int(tamanho * 0.31))
+            pygame.draw.lines(check, (255, 255, 255, alpha), False, [ponto1, ponto2, ponto3], max(3, tamanho // 7))
+            tela.blit(check, (x, y))

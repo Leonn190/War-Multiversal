@@ -14,6 +14,7 @@ CONFIG_PADRAO = {
     "Shader": True,
     "LarguraBase": 1920,
     "AlturaBase": 1080,
+    "Universos Ranqueados": [],
 }
 
 
@@ -31,6 +32,23 @@ def NormalizarConfig(config):
     config_final["Shader"] = bool(config_final.get("Shader", True))
     config_final["LarguraBase"] = int(config_final.get("LarguraBase", 1920))
     config_final["AlturaBase"] = int(config_final.get("AlturaBase", 1080))
+
+    universos_validos = {
+        "Marvel",
+        "DC",
+        "The Boys",
+        "Invencível",
+        "League Of Legends",
+        "Overwatch",
+        "One Piece",
+        "My Hero Academia",
+        "Pokemon",
+        "Gerais",
+    }
+    universos = config_final.get("Universos Ranqueados", [])
+    if not isinstance(universos, list):
+        universos = []
+    config_final["Universos Ranqueados"] = [nome for nome in universos if nome in universos_validos]
 
     return config_final
 

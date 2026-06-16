@@ -5,6 +5,9 @@ from Codigo.Visual.TransicaoTela import TransicaoTela
 from Codigo.Visual.LayoutResponsivo import LayoutResponsivo
 from Codigo.Telas.Telas.TelaInicial import TelaInicial
 from Codigo.Telas.Telas.TelaConfiguracoes import TelaConfiguracoes
+from Codigo.Telas.Telas.TelaRanqueada import TelaRanqueada
+from Codigo.Telas.Telas.TelaFila import TelaFila
+from Codigo.Telas.Telas.TelaCustomizada import TelaCustomizada
 from Codigo.Prefabs.Texto import Texto
 from Codigo.Prefabs.Mensagem import CampoMensagens
 from Codigo.Client.Sonoridades import Sonoridades
@@ -30,9 +33,13 @@ class ControladorJogo:
         self.TextoFPS = Texto("", tamanho=22, cor=(190, 205, 255), negrito=True, centralizado=False)
         self.Mensagens = CampoMensagens()
         self.Sonoridades = Sonoridades(config)
+        self.UniversosRanqueadosSelecionados = list(config.get("Universos Ranqueados", []))
         self.Telas = {
             "TelaInicial": TelaInicial,
             "TelaConfiguracoes": TelaConfiguracoes,
+            "TelaRanqueada": TelaRanqueada,
+            "TelaFila": TelaFila,
+            "TelaCustomizada": TelaCustomizada,
         }
 
     def DefinirTela(self, nome):
@@ -48,7 +55,7 @@ class ControladorJogo:
         self.Subtelas.clear()
         self.Transicao.Iniciar(0.35, invertida=True)
 
-        if nome in ("TelaInicial", "TelaConfiguracoes"):
+        if nome in ("TelaInicial", "TelaConfiguracoes", "TelaRanqueada", "TelaFila", "TelaCustomizada"):
             self.Sonoridades.TocarTema()
 
     def AbrirSubtela(self, subtela):

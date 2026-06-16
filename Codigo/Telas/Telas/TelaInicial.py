@@ -68,10 +68,10 @@ class TelaInicial(Tela):
         self.Controlador.Sonoridades.TocarTema()
 
     def AbrirRanqueado(self):
-        self.Controlador.MostrarMensagem("Ranqueado ainda não foi ligado ao servidor de partidas.")
+        self.Controlador.DefinirTela("TelaRanqueada")
 
     def AbrirCustomizado(self):
-        self.Controlador.MostrarMensagem("Customizado ainda não foi ligado à criação de sala.")
+        self.Controlador.DefinirTela("TelaCustomizada")
 
     def AbrirConfiguracoes(self):
         self.Controlador.DefinirTela("TelaConfiguracoes")
