@@ -11,6 +11,7 @@ from Codigo.Telas.Telas.TelaCustomizada import TelaCustomizada
 from Codigo.Prefabs.Texto import Texto
 from Codigo.Prefabs.Mensagem import CampoMensagens
 from Codigo.Client.Sonoridades import Sonoridades
+from Codigo.Client.Comunicacao import Comunicacao
 
 
 class ControladorJogo:
@@ -33,6 +34,8 @@ class ControladorJogo:
         self.TextoFPS = Texto("", tamanho=22, cor=(190, 205, 255), negrito=True, centralizado=False)
         self.Mensagens = CampoMensagens()
         self.Sonoridades = Sonoridades(config)
+        self.Comunicacao = Comunicacao()
+        self.PartidaAtual = None
         self.UniversosRanqueadosSelecionados = list(config.get("Universos Ranqueados", []))
         self.Telas = {
             "TelaInicial": TelaInicial,

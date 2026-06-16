@@ -12,7 +12,7 @@ class TelaRanqueada(Tela):
         self.Tempo = 0
         self.Titulo = Texto("RANQUEADA", tamanho=72, cor=(248, 250, 255), negrito=True)
         self.Subtitulo = Texto("Escolha os universos que podem aparecer na partida", tamanho=27, cor=(172, 186, 235))
-        self.Aviso = Texto("Selecione pelo menos um universo para buscar partida", tamanho=23, cor=(150, 164, 210))
+        self.Aviso = Texto("Selecione pelo menos 2 universos com 40 personagens no total", tamanho=23, cor=(150, 164, 210))
         self.CampoUniversos = CampoUniversos(quantidade=14, seed=910)
         self.PainelUniversos = Painel((160, 270, 1600, 610), {
             "fundo": (13, 18, 42, 218),
@@ -106,8 +106,13 @@ class TelaRanqueada(Tela):
         self.Controlador.SalvarConfiguracoes()
 
     def Jogar(self):
-        if not self.Selecionados:
-            self.Controlador.MostrarMensagem("Selecione pelo menos um universo para buscar partida.")
+        if len(self.Selecionados) < 2:
+            self.Controlador.MostrarMensagem("Selecione pelo menos 2 universos para buscar partida.")
+            return
+
+        quantidade_personagens = self.Controlador.Comunicacao.ContarPersonagensUniversos(self.Selecionados)
+        if quantidade_personagens < 40:
+            self.Controlador.MostrarMensagem("Os universos selecionados precisam somar pelo menos 40 personagens.")
             return
 
         self.Controlador.UniversosRanqueadosSelecionados = list(self.Selecionados)

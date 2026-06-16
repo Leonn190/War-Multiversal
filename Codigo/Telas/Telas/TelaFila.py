@@ -15,6 +15,8 @@ class TelaFila(Tela):
         self.Status = Texto("Entrando na fila ranqueada", tamanho=31, cor=(182, 198, 245), negrito=True)
         self.Descricao = Texto("A fila ainda é visual. O matchmaking será ligado depois.", tamanho=25, cor=(154, 168, 218))
         self.UniversosTexto = Texto("", tamanho=22, cor=(137, 152, 204))
+        self.EstadoFila = {}
+        self.PartidaEncontrada = False
         self.CampoUniversos = CampoUniversos(quantidade=13, seed=714)
         self.PainelFila = Painel((510, 310, 900, 465), {
             "fundo": (13, 18, 42, 220),
@@ -49,13 +51,25 @@ class TelaFila(Tela):
         else:
             texto = "Nenhum universo selecionado"
         self.UniversosTexto.DefinirTexto(texto)
+        self.EstadoFila = self.Controlador.Comunicacao.EntrarFilaRanqueada(universos)
+
+    def Sair(self):
+        if not self.PartidaEncontrada:
+            self.Controlador.Comunicacao.SairFilaRanqueada()
 
     def Cancelar(self):
+        self.Controlador.Comunicacao.SairFilaRanqueada()
         self.Controlador.MostrarMensagem("Busca cancelada.")
         self.Controlador.DefinirTela("TelaRanqueada")
 
     def Atualizar(self, dt):
         self.Tempo += dt
+        self.EstadoFila = self.Controlador.Comunicacao.AtualizarFilaRanqueada()
+        if self.EstadoFila.get("status") == "partida_encontrada" and not self.PartidaEncontrada:
+            self.PartidaEncontrada = True
+            self.Controlador.PartidaAtual = self.EstadoFila.get("partida")
+            self.Controlador.MostrarMensagem("Partida encontrada.")
+
         largura, altura = self.Controlador.Tela.get_size()
         self.CampoUniversos.Atualizar(dt, largura, altura)
         self.PainelFila.AtualizarRect(self.Controlador.Layout)
@@ -90,7 +104,17 @@ class TelaFila(Tela):
         self.DesenharFundo(tela)
         self.PainelFila.Desenhar(tela)
         self.Titulo.Desenhar(tela, (layout.X(960), layout.Y(230)))
-        self.Status.DefinirTexto("Entrando na fila ranqueada" + "." * (int(self.Tempo * 2) % 4))
+        if self.PartidaEncontrada:
+            self.Status.DefinirTexto("Partida iniciada")
+            self.Descricao.DefinirTexto("Dados da partida recebidos do servidor")
+        elif self.EstadoFila.get("aguardando_melhor_encaixe"):
+            restante = self.EstadoFila.get("segundos_restantes", 0)
+            self.Status.DefinirTexto(f"Fechando encaixe em {restante}s")
+            self.Descricao.DefinirTexto("Procurando uma combinacao melhor de universos")
+        else:
+            jogadores = self.EstadoFila.get("jogadores_na_fila", 1)
+            self.Status.DefinirTexto(f"Na fila: {jogadores}/5" + "." * (int(self.Tempo * 2) % 4))
+            self.Descricao.DefinirTexto("Aguardando jogadores compativeis")
         self.Status.Desenhar(tela, (layout.X(960), layout.Y(405)))
         self.DesenharIndicador(tela)
         self.Descricao.Desenhar(tela, (layout.X(960), layout.Y(600)))
